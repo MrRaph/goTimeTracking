@@ -20,6 +20,9 @@ func insertSampleClient() {
 	client2 := insertClient("Example")
 	fmt.Println(client2)
 
+	client3 := insertClient("ACME inc")
+	fmt.Println(client3)
+
 	var clients []Client
 	err := DB.From("goTT", "clients").All(&clients)
 

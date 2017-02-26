@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"log"
 	"time"
+
+	"github.com/asdine/storm/q"
 )
 
 type User struct {
@@ -16,15 +18,14 @@ type User struct {
 }
 
 type Client struct {
-	//ID        int       `storm:"id,increment"`
 	Name      string    `storm:"id,index"`
 	CreatedAt time.Time `storm:"index"`
 }
 
 type Project struct {
-	ID        int       `storm:"id,increment"`
-	Name      string    `storm:"index"`
-	CreatedAt time.Time `storm:"index"`
+	Name       string    `storm:"id,index"`
+	ClientName string    `storm:"id,index"`
+	CreatedAt  time.Time `storm:"index"`
 }
 
 type TimeEntry struct {
@@ -35,38 +36,61 @@ type TimeEntry struct {
 	EndTime   time.Time `storm:"index"`
 }
 
-func insertClient(name string) Client {
+func insertClient(name string) *Client {
 
 	clients := DB.From("goTT", "clients")
 
 	client := getClientByName(name)
 
-	if client == nil {
+	if client.Name == "" {
 		client = &Client{
 			Name:      name,
 			CreatedAt: time.Now(),
 		}
-	}
-	err := clients.Save(client)
 
-	if err != nil {
-		log.Fatalln(err)
+		err := clients.Save(client)
+
+		if err != nil {
+			log.Fatalln(err)
+		}
 	}
 
-	return *client
+	return client
 }
 
 func insertProject(client *Client, name string) *Project {
 	projects := DB.From("goTT", "projects")
-	project := &Project{
-		Name:      name,
-		CreatedAt: time.Now(),
-	}
-	err := projects.Save(project)
-	if err != nil {
-		log.Fatalln(err)
+	project := getProjectByName(client.Name, name)
+
+	if project.Name == "" {
+		project = &Project{
+			Name:       name,
+			ClientName: client.Name,
+			CreatedAt:  time.Now(),
+		}
+
+		err := projects.Save(project)
+		if err != nil {
+			log.Fatalln(err)
+		}
 	}
 	return project
+}
+
+func getProjectByName(clientName, name string) *Project {
+	var project Project
+	projects := DB.From("goTT", "projects")
+
+	err = projects.Select(q.Gte("ClientName", clientName), q.Lte("Name", name)).Find(&project)
+
+	if err != nil {
+		fmt.Println(err)
+		return &Project{
+			ClientName: "",
+			Name:       "",
+		}
+	}
+	return &project
 }
 
 func getClientByName(name string) *Client {
@@ -74,9 +98,10 @@ func getClientByName(name string) *Client {
 	clients := DB.From("goTT", "clients")
 	err = clients.One("Name", name, &client)
 	if err != nil {
-		//log.Fatal(err)
 		fmt.Println(err)
+		return &Client{
+			Name: "",
+		}
 	}
-
 	return &client
 }
