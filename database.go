@@ -84,23 +84,36 @@ func getProjectByName(clientName, name string) *Project {
 	var project []Project
 	projects := DB.From("goTT", "projects")
 
-	err = projects.Select(q.Gte("ClientName", clientName), q.Lte("Name", name)).Find(&project)
+	err = projects.Select(q.Eq("ClientName", clientName), q.Eq("Name", name)).Find(&project)
 
 	if err != nil {
 		fmt.Println(err)
 
-		fmt.Println("Apres insertion project 1")
 		return &Project{
 			ClientName: "",
 			Name:       "",
 		}
 	} else {
 		if len(project) > 1 {
-			fmt.Println("More than on Projects")
+			fmt.Println("More than one Projects")
 		}
 	}
 
 	return &project[0]
+}
+
+func getProjectByClient(clientName string) *[]Project {
+	var project []Project
+	projects := DB.From("goTT", "projects")
+
+	err = projects.Select(q.Eq("ClientName", clientName)).Find(&project)
+
+	if err != nil {
+		fmt.Println(err)
+
+	}
+
+	return &project
 }
 
 func getClientByName(name string) *Client {

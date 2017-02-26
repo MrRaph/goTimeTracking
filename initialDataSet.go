@@ -50,4 +50,6 @@ func insertSampleClient() {
 		log.Fatal(err)
 	}
 	fmt.Println("Found", len(projects))
+
+	fmt.Println(getProjectByClient(client1.Name))
 }
