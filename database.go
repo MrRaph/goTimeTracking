@@ -29,11 +29,13 @@ type Project struct {
 }
 
 type TimeEntry struct {
-	ID        int       `storm:"id,increment"`
-	Comment   string    `storm:"index"`
-	CreatedAt time.Time `storm:"index"`
-	StartTime time.Time `storm:"index"`
-	EndTime   time.Time `storm:"index"`
+	ID          int       `storm:"id,increment"`
+	ClientName  string    `storm:"id,index"`
+	ProjectName string    `storm:"id,index"`
+	Comment     string    `storm:"index"`
+	CreatedAt   time.Time `storm:"index"`
+	StartTime   time.Time `storm:"index"`
+	EndTime     time.Time `storm:"index"`
 }
 
 func insertClient(name string) *Client {
@@ -60,6 +62,7 @@ func insertClient(name string) *Client {
 
 func insertProject(client *Client, name string) *Project {
 	projects := DB.From("goTT", "projects")
+
 	project := getProjectByName(client.Name, name)
 
 	if project.Name == "" {
@@ -78,19 +81,26 @@ func insertProject(client *Client, name string) *Project {
 }
 
 func getProjectByName(clientName, name string) *Project {
-	var project Project
+	var project []Project
 	projects := DB.From("goTT", "projects")
 
 	err = projects.Select(q.Gte("ClientName", clientName), q.Lte("Name", name)).Find(&project)
 
 	if err != nil {
 		fmt.Println(err)
+
+		fmt.Println("Apres insertion project 1")
 		return &Project{
 			ClientName: "",
 			Name:       "",
 		}
+	} else {
+		if len(project) > 1 {
+			fmt.Println("More than on Projects")
+		}
 	}
-	return &project
+
+	return &project[0]
 }
 
 func getClientByName(name string) *Client {
