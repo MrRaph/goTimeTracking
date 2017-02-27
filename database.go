@@ -28,7 +28,7 @@ type Project struct {
 	CreatedAt  time.Time `storm:"index"`
 }
 
-type TimeEntry struct {
+type Task struct {
 	ID          int       `storm:"id,increment"`
 	ClientName  string    `storm:"id,index"`
 	ProjectName string    `storm:"id,index"`
@@ -37,6 +37,10 @@ type TimeEntry struct {
 	StartTime   time.Time `storm:"index"`
 	EndTime     time.Time `storm:"index"`
 }
+
+/******************************************************************************
+*** Insert
+******************************************************************************/
 
 func insertClient(name string) *Client {
 
@@ -78,6 +82,67 @@ func insertProject(client *Client, name string) *Project {
 		}
 	}
 	return project
+}
+
+func insertTask(client *Client, project *Project, comment string) *Task {
+	timeEntriesBucket := DB.From("goTT", "timeentries")
+	timeEntry := &Task{
+		ClientName:  client.Name,
+		ProjectName: project.Name,
+		Comment:     comment,
+		CreatedAt:   time.Now(),
+		StartTime:   time.Now(),
+		EndTime:     time.Now().AddDate(0, -1, 0),
+	}
+
+	err := timeEntriesBucket.Save(timeEntry)
+	if err != nil {
+		log.Fatalln(err)
+	}
+	return timeEntry
+}
+
+func updateTask(timeEntry *Task) *Task {
+	timeEntriesBucket := DB.From("goTT", "timeentries")
+	err := timeEntriesBucket.Update(timeEntry)
+	if err != nil {
+		log.Fatalln(err)
+	}
+	return timeEntry
+}
+
+/******************************************************************************
+*** Select
+******************************************************************************/
+
+func getTaskByProject(clientName, projectName string) *[]Task {
+	var timeEntries []Task
+	timeEntryBucket := DB.From("goTT", "timeentries")
+
+	err = timeEntryBucket.Select(q.Eq("ClientName", clientName), q.Eq("ProjectName", projectName)).Find(&timeEntries)
+
+	if err != nil {
+		fmt.Println(err)
+		timeEntries[0] = Task{
+			ID:          -1,
+			ClientName:  "",
+			ProjectName: "",
+		}
+		return &timeEntries
+	}
+
+	return &timeEntries
+}
+
+func getTaskFromComment(comment string) (client *Client, project *Project, timeentry *Task) {
+
+	timeEntryBucket := DB.From("goTT", "timeentries")
+	err = timeEntryBucket.Select(q.Eq("Comment", comment)).Find(timeentry)
+
+	client = getClientByName(timeentry.ClientName)
+	project = getProjectByName(timeentry.ClientName, timeentry.ProjectName)
+
+	return
 }
 
 func getProjectByName(clientName, name string) *Project {
